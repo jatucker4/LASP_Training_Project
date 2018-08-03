@@ -24,13 +24,24 @@
 
 import sys, pygame, random
 from NeuralEvolutionBreakout import network
+from random import randint
 
 
 def main(neural_network, parameter):
+    crashinfo = mainGame(neural_network, parameter)
+    return crashinfo
+
+
+def returning(score):
+    return score
+
+
+def mainGame(neural_network, parameter):
     xspeed_init = 9
     yspeed_init = 9
     max_lives = 5
     bat_speed = 30
+    global score
     score = 0
     bgcolour = 0x2F, 0x4F, 0x4F  # darkslategrey
     size = width, height = 640, 480
@@ -98,10 +109,12 @@ def main(neural_network, parameter):
         # process key presses
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                returning(score)
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-        	        sys.exit()
+                    lives = 0
+                    sys.exit()
                 if event.key == pygame.K_LEFT:
                     batrect = batrect.move(-bat_speed, 0)
                     if (batrect.left < 0):
@@ -123,19 +136,20 @@ def main(neural_network, parameter):
             # vary angle of ball depending on where ball hits bat
             if offset > 0:
                 if offset > 30:
-                    xspeed = 7
+                    xspeed = 7 + randint(1, 3)
                 elif offset > 23:
-                    xspeed = 6
+                    xspeed = 6 + randint(1, 3)
                 elif offset > 17:
-                    xspeed = 5
+                    xspeed = 5 + randint(1, 3)
             else:
                 if offset < -30:
-                    xspeed = -7
+                    xspeed = -7 - randint(1, 3)
                 elif offset < -23:
-                    xspeed = -6
+                    xspeed = -6 - randint(1, 3)
                 elif xspeed < -17:
-                    xspeed = -5
-                      
+                    xspeed = -5 - randint(1, 3)
+                elif offset is 0:
+                    xspeed = randint(-7, 7)
         # move bat/ball
         ballrect = ballrect.move(xspeed, yspeed)
         if ballrect.left < 0 or ballrect.right > width:
@@ -161,7 +175,6 @@ def main(neural_network, parameter):
                 msgrect = msgrect.move(width / 2 - (msgrect.center[0]), height / 3)
                 screen.blit(msg, msgrect)
                 pygame.display.flip()
-
                 return (score)
 
                 # process key presses
@@ -171,10 +184,12 @@ def main(neural_network, parameter):
                     restart = False
                     for event in pygame.event.get():
                         if event.type == pygame.QUIT:
-                            sys.exit()
+                            loopvariable = True
+                            return score
                         if event.type == pygame.KEYDOWN:
                             if event.key == pygame.K_ESCAPE:
-                    	        sys.exit()
+                                loopvariable = True
+                                return score
                             if not (event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT):
                                 restart = True
                     if restart:
@@ -193,7 +208,7 @@ def main(neural_network, parameter):
             pong.play(0)
 
         # check if ball has hit wall
-        # if yes yhen delete brick and change ball direction
+        # if yes then delete brick and change ball direction
         index = ballrect.collidelist(wall.brickrect)
         if index != -1:
             if ballrect.center[0] > wall.brickrect[index].right or \

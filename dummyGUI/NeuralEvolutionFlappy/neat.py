@@ -13,7 +13,6 @@ class NEAT(object):
         self.num_generations_per_spec = num_generations_per_spec
         self.num_networks_per_gen = num_networks_per_gen
         self.organism_topology = topology
-
         self.species = {}
 
     def start_evolutionary_process(self):
@@ -33,14 +32,6 @@ class NEAT(object):
             self.species[s_id] = new_species
         # print the species ID and evolve the species
         for s_id, s in self.species.items():
-            self.pretty_print_s_id(s_id)
             s.evolve()
 
-    def pretty_print_s_id(self, s_id):
-        """ This method prints the spcies ID in a well formatted way. """
-        print("\n")
-        print("====================")
-        print("===  Species:", s_id, " ===")
-        print("====================")
-        print("\n")
 

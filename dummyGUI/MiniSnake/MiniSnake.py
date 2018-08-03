@@ -27,7 +27,7 @@ Legal shit:
 '''
 import pygame
 from pygame.locals import *
-import random
+import random, sys
 
 # ---------- constants ---------- #
 SCREENSIZE = (800, 600)
@@ -210,7 +210,7 @@ def main(neural_network, parameter):
 		# events
 		for event in pygame.event.get():
 			if event.type == QUIT:
-				quit = True
+				sys.exit()
 			elif event.type == KEYDOWN:
 				currentmovedir = snake.movedir
 				if event.key == K_UP:
@@ -267,15 +267,19 @@ def main(neural_network, parameter):
 		if pos[0] < 0:
 			quit = True
 			lose = True
+			return (currentscore+1)
 		if pos[0] >= SCREENSIZE[0]:
 			quit = True
 			lose = True
+			return (currentscore+1)
 		if pos[1] < 0:
 			quit = True
 			lose = True
+			return (currentscore+1)
 		if pos[1] >= SCREENSIZE[1]:
 			quit = True
 			lose = True
+			return (currentscore+1)
 		# collisions
 		# head -> tail
 		col = pygame.sprite.groupcollide(snakeheadgroup, snakegroup, False, False)
@@ -284,6 +288,7 @@ def main(neural_network, parameter):
 				if not tail is snake:
 					quit = True
 					lose = True
+					return (currentscore+1)
 		# head -> food
 		col = pygame.sprite.groupcollide(snakeheadgroup, foodgroup, False, True)
 		for head in col:
@@ -308,6 +313,7 @@ def main(neural_network, parameter):
 			for collidedblock in col[head]:
 				quit = True
 				lose = True
+				return (currentscore+1)
 		
 		# score
 		d = screen.blit(bg, SCORE_POS, pygame.Rect(SCORE_POS, (50, 100)))
@@ -325,7 +331,8 @@ def main(neural_network, parameter):
 		
 		# waiting
 		clock.tick(FPS)
-	
+
+	# return (currentscore)
 	# game over
 	if lose == True:
 		f = pygame.font.Font(None, 300)
@@ -334,13 +341,5 @@ def main(neural_network, parameter):
 		failrect.center = SCREENRECT.center
 		screen.blit(failmessage, failrect)
 		pygame.display.flip()
-		if currentscore > 0:
-			return(currentscore)
-		if currentscore is 0:
-			currentscore = 1
-			return(currentscore)
+		return(currentscore)
 		# pygame.time.wait(2000)
-
-
-if __name__ == "__main__":
-	main()

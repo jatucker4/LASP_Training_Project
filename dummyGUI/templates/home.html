@@ -40,9 +40,21 @@ function closeNav() {
 <h1> Welcome to the Neural Network Playground Help Website!</h1>
 
 <p>
-    This project is meant for anyone that wants to experiment with the NEAT algorithm. There are three video games that
+    This project is meant for anyone that wants to experiment with the NEAT algorithm. There are three video games that the
     NEAT network can attempt to solve. As the user you can choose different parameters, depending on the game, that provide the neural network
     conditions to solve the game under.
+</p>
+<p>
+    Before we get into the specific game parameters that you can choose for the neural network there are two parameters that every game option shares.
+    These are the hidden layer, and hidden neuron options. THe rule of thumb is tha the number of hidden layers should at least be equal to the input layers,
+    and the number of hidden neurons in the layers should be the mean of the neurons in the input and output layers. In these games the input and output layers
+    both have one neuron. Despite the advice here I recommend you choose different options to see the effect on the neural network!
+</p>
+<p>
+    For the game specific paremeters we have:
+    - Flappy Bird has variable tube options
+    - Snake has added blocks and speed
+    - Breakout has increased ball and/or bat speed
 </p>
 
 {% endblock %}

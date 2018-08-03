@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtSql import *
 from PyQt5.QtCore import *
 import subprocess
-import webbrowser
+import webbrowser, os, sys
 
 
 class MainWindow(QMainWindow):
@@ -38,6 +38,19 @@ class MainWindow(QMainWindow):
 		# Connect the action to the launch help method in the central widget class
 		self.help.triggered[QAction].connect(self.centralWidget.launchHelp)
 
+		# Create a menu option and add actions to it
+		# Connect the actions to methods within the central widget
+		self.load = self.menubar.addMenu("Load")
+		self.loadFlappyAction = QAction("Load Flappy", self)
+		self.load.addAction(self.loadFlappyAction)
+		self.loadFlappyAction.triggered.connect(self.centralWidget.loadFlappy)
+		self.loadBreakoutAction = QAction("Load Breakout", self)
+		self.load.addAction(self.loadBreakoutAction)
+		self.loadBreakoutAction.triggered.connect(self.centralWidget.loadBreakout)
+		self.loadSnakeAction = QAction("Load Snake", self)
+		self.load.addAction(self.loadSnakeAction)
+		self.loadSnakeAction.triggered.connect(self.centralWidget.loadSnake)
+
 
 class CentralWidget(QWidget):
 	def __init__(self):
@@ -65,6 +78,10 @@ class CentralWidget(QWidget):
 		self.snakeOptions = self.snakeDialog.allOptions
 		# Retrieve the list of options from the dialog object
 		self.breakoutOptions = self.breakoutDialog.allOptions
+
+		self.flappyFileOption = ['None']
+		self.snakeFileOption = ['None']
+		self.breakoutFileOption = ['None']
 
 		# Create a Button to play flappy bird
 		self.flappyButton = QPushButton("Play Flappy Bird")
@@ -133,7 +150,7 @@ class CentralWidget(QWidget):
 		# If the user presses OK on the dialog box launch the NN with their options
 		if self.flappyDialog.termination is True:
 			# Launch the NN with the options
-			self.launchFlappy(self.flappyDialog.allOptions)
+			self.launchFlappy(self.flappyDialog.allOptions, self.flappyFileOption[0])
 		# Reset the flag to false so that the user can open multiple windows at once
 		self.flappyDialog.termination = False
 
@@ -149,7 +166,7 @@ class CentralWidget(QWidget):
 		# If the user presses OK on the dialog box launch the NN with their options
 		if self.breakoutDialog.termination is True:
 			# Launch the NN with the options
-			self.launchBreakout(self.breakoutDialog.allOptions)
+			self.launchBreakout(self.breakoutDialog.allOptions, self.breakoutFileOption[0])
 		# Reset the flag to false so that the user can open multiple windows at once
 		self.flappyDialog.termination = False
 
@@ -165,17 +182,14 @@ class CentralWidget(QWidget):
 		# If the user presses OK on the dialog box launch the NN with their options
 		if self.snakeDialog.termination is True:
 			# Launch the NN with the options
-			self.launchSnake(self.snakeDialog.allOptions)
+			self.launchSnake(self.snakeDialog.allOptions, self.snakeFileOption[0])
 		# Reset the flag to false so that the user can open multiple windows at once
 		self.flappyDialog.termination = False
 
-	def temp(self):
-		print(self.flappyOptions)
-
-	def launchBreakout(self, optionsList):
+	def launchBreakout(self, optionsList, launchFlag):
 		""" This method takes the user options and launches the Neural Network using subprocess
 
-			Input: list of strings [options <str>]
+			Input: list of strings [options <str>], filepath <str>
 			Output: launches NN via subprocess
 		"""
 		# Create a dictionary to convert the string of readable user options into integers
@@ -191,14 +205,29 @@ class CentralWidget(QWidget):
 		option2 = optionsList[1]
 		option3 = optionsList[2]
 		# Create a string for the subprocess call that includes the options the user selected
-		string = "python3 breakout_driver.py -i 4 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1
+		string = "python3 breakout_driver.py -i 4 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1 + " -x " + launchFlag
 		# Call subprocess in the shell with a new session each time so the user can open multiple runs at once
-		subprocess.Popen([string], shell=True, start_new_session=True)
+		sp = subprocess.Popen([string], stdout=subprocess.PIPE, shell=True, start_new_session=True)
+		# Recieve the output from the neural network
+		out = sp.communicate()
+		# Decode from byte code
+		string = out[0].decode("utf-8")
+		# Split it by newline
+		out = string.split()
+		# Create list for game stats
+		try:
+			# Create list for game stats
+			gameStatsList = ["Breakout", int(out[-2]), int(out[-1])]
+		# Handle index error
+		except IndexError:
+			gameStatsList = ["Error getting score", 100, 100]
+		# Save to database
+		self.databaseView.tableQuery(gameStatsList, optionsList)
 
-	def launchFlappy(self, optionsList):
+	def launchFlappy(self, optionsList, launchFlag):
 		""" This method takes the user options and launches the Neural Network using subprocess
 
-			Input: list of strings [options <str>]
+			Input: list of strings [options <str>], filepath <str>
 			Output: launches NN via subprocess
 		"""
 		# Create a dictionary to convert the string of readable user options into integers
@@ -214,16 +243,28 @@ class CentralWidget(QWidget):
 		option2 = optionsList[1]
 		option3 = optionsList[2]
 		# Create a string for the subprocess call that includes the options the user selected
-		string = "python3 flappy_driver.py -i 10 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1
+		string = "python3 flappy_driver.py -i 10 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1 + " -x " + launchFlag
 		# Call subprocess in the shell with a new session each time so the user can open multiple runs at once
-		sp = subprocess.Popen([string], shell=True, start_new_session=True, stdout=subprocess.PIPE)
+		sp = subprocess.Popen([string], stdout=subprocess.PIPE, shell=True, start_new_session=True)
+		# Recieve the output from the neural network
 		out = sp.communicate()
-		print(out)
+		# Decode from byte code
+		string = out[0].decode("utf-8")
+		# Split it by newline
+		out = string.split()
+		try:
+			# Create list for game stats
+			gameStatsList = ["FlappyBird", int(out[-2]), int(out[-1])]
+		# Handle index error
+		except IndexError:
+			gameStatsList = ["Error getting score", 100, 100]
+		# Save to database
+		self.databaseView.tableQuery(gameStatsList, optionsList)
 
-	def launchSnake(self, optionsList):
+	def launchSnake(self, optionsList, launchFlag):
 		""" This method takes the user options and launches the Neural Network using subprocess
 
-			Input: list of strings [options <str>]
+			Input: list of strings [options <str>], filepath <str>
 			Output: launches NN via subprocess
 		"""
 		# Create a dictionary to convert the string of readable user options into integers
@@ -239,15 +280,92 @@ class CentralWidget(QWidget):
 		option2 = optionsList[1]
 		option3 = optionsList[2]
 		# Create a string for the subprocess call that includes the options the user selected
-		string = "python3 snakeio_driver.py -i 4 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1
+		string = "python3 snakeio_driver.py -i 4 -o 1 -h " + option2 + " -l " + option3 + " -p " + option1 + " -x " + launchFlag
 		# Call subprocess in the shell with a new session each time so the user can open multiple runs at once
-		subprocess.Popen([string], shell=True, start_new_session=True)
+		sp = subprocess.Popen([string], stdout=subprocess.PIPE, shell=True, start_new_session=True)
+		# Recieve the output from the neural network
+		out = sp.communicate()
+		# Decode from byte code
+		string = out[0].decode("utf-8")
+		# Split it by newline
+		out = string.split()
+		try:
+			# Create list for game stats
+			gameStatsList = ["Snake", int(out[-2]), int(out[-1])]
+		# Handle index error
+		except IndexError:
+			gameStatsList = ["Error getting score", 100, 100]
+		# Save to database
+		self.databaseView.tableQuery(gameStatsList, optionsList)
 
 	def launchHelp(self):
 		""" This method has no inputs or outputs but when called it launches the webHelp.py script which
 			boots up the help website and then the website is opened up in the users default browser
 		"""
 		webbrowser.open_new("http://127.0.0.1:5000")
+
+	def loadFlappy(self):
+		""" This method presents a file dialog to the user and allows them to choose a pickle file
+			to load into the neural network
+
+			Inputs: No inputs
+			Outputs: No outputs but launches the NN with the saved generation state"""
+		# Create a File dialog object
+		fileOptions = QFileDialog()
+		# Specify the directory the user can choose files from
+		fileOptions.setDirectory(os.path.join(sys.path[0], "FlapPyBird", "SaveFiles"))
+		# Filter for the save files
+		fileOptions.setNameFilter("*.savefile")
+		# Open the file dialog
+		fileOptions.exec()
+		# Save the selected file into the file option class variable
+		self.flappyFileOption = fileOptions.selectedFiles()
+		# Launch the NN with the options
+		self.getTubes()
+		# Reset the file option to None so that a user can launch a window with fresh options
+		self.flappyFileOption = ['None']
+
+	def loadBreakout(self):
+		""" This method presents a file dialog to the user and allows them to choose a pickle file
+			to load into the neural network
+
+			Inputs: No inputs
+			Outputs: No outputs but launches the NN with the saved generation state"""
+		# Create a File dialog object
+		fileOptions = QFileDialog()
+		# Specify the directory the user can choose files from
+		fileOptions.setDirectory(os.path.join(sys.path[0], "breakout", "SaveFiles"))
+		# Filter for the save files
+		fileOptions.setNameFilter("*.savefile")
+		# Open the file dialog
+		fileOptions.exec()
+		# Save the selected file into the file option class variable
+		self.breakoutFileOption = fileOptions.selectedFiles()
+		# Launch the NN with the options
+		self.getBreaks()
+		# Reset the file option to None so that a user can launch a window with fresh options
+		self.breakoutFileOption = ['None']
+
+	def loadSnake(self):
+		""" This method presents a file dialog to the user and allows them to choose a pickle file
+			to load into the neural network
+
+			Inputs: No inputs
+			Outputs: No outputs but launches the NN with the saved generation state"""
+		# Create a File dialog object
+		fileOptions = QFileDialog()
+		# Specify the directory the user can choose files from
+		fileOptions.setDirectory(os.path.join(sys.path[0], "MiniSnake", "SaveFiles"))
+		# Filter for the save files
+		fileOptions.setNameFilter("*.savefile")
+		# Open the file dialog
+		fileOptions.exec()
+		# Save the selected file into the file option class variable
+		self.snakeFileOption = fileOptions.selectedFiles()
+		# Launch the NN with the options
+		self.getSnakes()
+		# Reset the file option to None so that a user can launch a window with fresh options
+		self.snakeFileOption = ['None']
 
 
 class flappyOptionSelection(QDialog):
@@ -281,7 +399,7 @@ class flappyOptionSelection(QDialog):
 		# Instantiate a combo box object for the hidden layer option
 		self.hiddenLayerOptions = QComboBox(self)
 		# Add the items to the hidden layer option combo box
-		self.hiddenLayerOptions.addItems(["0", "1", "2"])
+		self.hiddenLayerOptions.addItems(["1", "2"])
 
 		# Instantiate a combo box object for the hidden neurons option
 		self.hiddenNeurons = QComboBox(self)
@@ -380,7 +498,7 @@ class snakeOptionSelection(QDialog):
 		# Instantiate a combo box object for the hidden layer options
 		self.hiddenLayerOptions = QComboBox(self)
 		# Add the hidden layer options to the above combo box
-		self.hiddenLayerOptions.addItems(["0", "1", "2"])
+		self.hiddenLayerOptions.addItems(["1", "2"])
 
 		# Instantiate a combo box object for the hidden neuron options
 		self.hiddenNeurons = QComboBox(self)
@@ -479,7 +597,7 @@ class breakoutOptionSelection(QDialog):
 		# Instantiate a combo box object for the hidden layer options
 		self.hiddenLayerOptions = QComboBox(self)
 		# Add the hidden layer options to the above combo box
-		self.hiddenLayerOptions.addItems(["0", "1", "2"])
+		self.hiddenLayerOptions.addItems(["1", "2"])
 
 		# Instantiate a combo box object for the hidden neuron options
 		self.hiddenNeurons = QComboBox(self)
@@ -554,21 +672,17 @@ class databaseViewer(QDialog):
 		# Create a sqlite database
 		self.db = QSqlDatabase.addDatabase('QSQLITE')
 		# Set the name of the database
-		self.db.setDatabaseName("sports.db")
+		self.db.setDatabaseName("nn.db")
 		# Open the database so that it can accept queries
 		self.db.open()
 		# Instantiate a query object
 		self.query = QSqlQuery()
 		# Create a table within the database
-		self.query.exec_("create table sportsmen( id int primary key"
-		                 ", firstname varchar(20), lastname varchar(20))")
-		# Insert into the table
-		self.query.exec_("insert into sportsmen values(101, 'Roger', 'Federer')")
-
+		self.query.exec_("create table neuralnetstatistics( id integer primary key autoincrement"
+		                 ", gameName varchar(20), netID int, netScore int, parameterOne varchar(20)"
+		                 ", parameterTwo int, parameterThree int)")
 		# Instantiate a model object
 		self.model = QSqlTableModel()
-		# Create a variable to delete the rows
-		self.delrow = -1
 		# Initialize the model object
 		self.initializeModel(self.model)
 		# Create a view of the model object
@@ -578,12 +692,6 @@ class databaseViewer(QDialog):
 		self.dlgLayout = QVBoxLayout()
 		# Add the model view to the dialog box layout
 		self.dlgLayout.addWidget(self.view1)
-		# self.button = QPushButton("Add a row")
-		# self.button.clicked.connect(self.addrow)
-		# self.dlgLayout.addWidget(self.button)
-		# self.btn1 = QPushButton("Delete a row")
-		# self.btn1.clicked.connect(lambda: self.model.removeRow(self.view1.currentIndex().row()))
-		# self.dlgLayout.addWidget(self.btn1)
 		self.setLayout(self.dlgLayout)
 		self.setWindowTitle("Database Viewer")
 
@@ -595,7 +703,7 @@ class databaseViewer(QDialog):
 
 		"""
 		# Set the table that the model will display
-		model.setTable("sportsmen")
+		model.setTable("neuralnetstatistics")
 		# Set it so that the model will update evertime something is added to the database
 		model.setEditStrategy(QSqlTableModel.OnFieldChange)
 		# Select the model to edit the headers
@@ -603,9 +711,17 @@ class databaseViewer(QDialog):
 		# Set the first header title
 		model.setHeaderData(0, Qt.Horizontal, "ID")
 		# Set the second header title
-		model.setHeaderData(1, Qt.Horizontal, "First Name")
+		model.setHeaderData(1, Qt.Horizontal, "Game Name")
 		# Set the third header title
-		model.setHeaderData(2, Qt.Horizontal, "Last Name")
+		model.setHeaderData(2, Qt.Horizontal, "Network Number")
+		# Set the fourth header title
+		model.setHeaderData(3, Qt.Horizontal, "Network Score")
+		# Set the fifth header title
+		model.setHeaderData(4, Qt.Horizontal, "Parameter One")
+		# Set the sixth header title
+		model.setHeaderData(5, Qt.Horizontal, "Parameter Two")
+		# Set the seventh header title
+		model.setHeaderData(6, Qt.Horizontal, "Parameter Three")
 
 	def createView(self, title, model):
 		""" This method takes in a title for the view and a model object
@@ -623,11 +739,23 @@ class databaseViewer(QDialog):
 		# Output the view object
 		return (view)
 
-	# def addrow(self):
-	# 	ret = self.model.insertRows(self.model.rowCount(), 1)
-	#
-	# def findrow(self, i):
-	# 	delrow = i.row()
+	def tableQuery(self, gameStatsList, parameterList):
+		""" This method takes in two lists, concatenates them, and pieces them together in an insert statement
+			so that they can be inserted into the database.
+
+			Input: List [], List []
+			Output: no output but inserts into database"""
+		# Concatenate the inputs
+		gameStatsList = gameStatsList + parameterList
+		# Put them into an insert string
+		string = "insert into neuralnetstatistics (gameName, netID, netScore, parameterOne, parameterTwo, parameterThree )" \
+		         " values( " "'" + gameStatsList[0]+ "'" + ", "\
+		         + str(gameStatsList[1]) + ", " + str(gameStatsList[2]) + ", " + "'" +gameStatsList[3] + "'" +\
+		         ", " + str(gameStatsList[4]) + ", " + str(gameStatsList[5]) + ")"
+		# Insert them into a database
+		self.query.exec_(string)
+		# Re-initialize the model to update the database
+		self.initializeModel(self.model)
 
 
 def main():
@@ -641,10 +769,11 @@ def main():
 	webProcess = QProcess()
 	# Spin up the website
 	webProcess.start("python3 webHelp.py")
+	# Execute the application
+	app.exec()
+	# Terminate the webprocess
 	# Exit when the app is done being executed
-	exit(app.exec())
-	# Terminate the web server after the app is terminated
-	webProcess.terminate()
+	exit(webProcess.terminate())
 
 
 if __name__ == '__main__':

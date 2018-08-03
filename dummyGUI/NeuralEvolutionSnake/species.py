@@ -1,6 +1,6 @@
 from NeuralEvolutionSnake.network import Network
 from MiniSnake import MiniSnake
-import os
+import os, pickle, datetime
 
 os.chdir(os.getcwd() + '/MiniSnake/')
 
@@ -14,7 +14,11 @@ class Species(object):
         self.num_generations = num_generations
         self.num_networks_per_gen = num_networks_per_gen
         self.organism_topology = topology
-        self.generations = {}
+        self.load_Flag = self.organism_topology[5]
+        if self.load_Flag == 'None':
+            self.generations = {}
+        else:
+            self.generations = self.load_from_File(self.load_Flag)
 
     def evolve(self):
         """ This method has no inputs but for every generation it creates
@@ -71,6 +75,7 @@ class Species(object):
                     network_number += 1
 
         self.generations[generation_number] = networks
+        self.save_to_File(self.generations)
 
     # This function holds the interface and interaction with Snake
     def generate_fitness(self, generation_number, parameters):
@@ -83,19 +88,20 @@ class Species(object):
         # Initialize the score for the generation to be 0
         generation_score = 0
         # print the generation number
-        self.pretty_print_gen_id(generation_number)
+        print(generation_number)
 
         for network_num, network in self.generations[generation_number].items():
             # Run the game with each network in the current generation
             results = MiniSnake.main(network, parameters)
 
             fitness_score = (results) - 200
+
             # Set the fitness for each network
             network.set_fitness(fitness_score)
-            print('Network', network_num, 'scored', fitness_score)
+            print(network_num)
+            print(fitness_score)
+            # Add this networks score to the overall score of the generation
             generation_score += fitness_score
-
-        print("\nGeneration Score:", generation_score)
 
     def select_survivors(self, generation_number):
         """ This method takes in the generation number sorts them by fitness
@@ -109,16 +115,27 @@ class Species(object):
 
         alive_network_ids = sorted_network_ids[:self.num_networks_per_gen // 2]
         dead_network_ids = sorted_network_ids[self.num_networks_per_gen // 2:]
-
-        print('\nBest Networks:', alive_network_ids)
         return alive_network_ids
 
-    def pretty_print_gen_id(self, gen_id):
-        """ This method prints the generation ID in a well formatted way"""
+    def save_to_File(self, generations):
+        """ This method saves the generation into the Save File folder for the game
 
-        print("\n")
-        print("-----------------------")
-        print("---  Generation:", gen_id, " ---")
-        print("-----------------------")
-        print("\n")
+            Inputs: Dictionary {Network Objects}
+            Outputs: No outputs"""
+        # Create a datestring to append to the filename
+        dateString = datetime.datetime.now().strftime("%I:%M%pon%B%d")
+        # Create the file object with the filename
+        file_object = open("SaveFiles/snake_" + dateString + ".savefile", 'wb')
+        # Use pickle to dump the generation structure into the file object
+        pickle.dump(generations, file_object)
 
+    def load_from_File(self, filePath):
+        """ This method loads the generation structure from a specific file of the users choosing
+
+            Inputs: String
+            Outputs: No outputs"""
+        # Create file object
+        fileObject = open(filePath, 'rb')
+        # Load from the file object
+        b = pickle.load(fileObject)
+        return b

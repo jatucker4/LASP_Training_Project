@@ -80,7 +80,12 @@ class Network(object):
         # Any of our activation functions, (sigmoid or relu)
         # This is basically a function that takes in a value and returns a
         # different integer based on the activation function
-        self.activation = lambda t: 1 if self.relu(t) >= 0.5 else 0
+
+    def activation(self, t):
+        if self.relu(t) >= 0.5:
+            return 1
+        else:
+            return 0
 
     def relu(self, T):
         """ This method takes in an integer and returns a float"""

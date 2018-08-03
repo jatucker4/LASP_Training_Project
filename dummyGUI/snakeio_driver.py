@@ -2,7 +2,7 @@ from NeuralEvolutionSnake.neat import NEAT
 import sys
 
 
-# Driver for NEAT solution to FlapPyBird
+# Driver for NEAT solution to Snake
 def evolutionary_driver(network_options):
 	""" This function takes in user parameters for the neural network
 		and boots up the neural net via the start evolutionary process method
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 	def_hidden_neurons = 2
 	def_hidden_layers = 1
 	def_parameter_options = 0
-
+	def_load_from_save = "None"
 	# Create a dictionary to hold these values and associate them with flags
 	options = {}
 	options['-i'] = def_input_neurons
@@ -37,13 +37,16 @@ if __name__ == "__main__":
 	options['-h'] = def_hidden_neurons
 	options['-l'] = def_hidden_layers
 	options['-p'] = def_parameter_options
-
+	options['-x'] = def_load_from_save
 	# Check for flags and if they exist loop through them to find out which ones they are
 	if (len(sys.argv) > 1):
 		for i in range(1, len(sys.argv), 2):
-			options[sys.argv[i]] = int(sys.argv[i+1])
+			if sys.argv[i] == '-x':
+				options[sys.argv[i]] = sys.argv[i + 1]
+			else:
+				options[sys.argv[i]] = int(sys.argv[i + 1])
 
-	params = (options['-i'], options['-o'], options['-h'], options['-l'], options['-p'])
+	params = (options['-i'], options['-o'], options['-h'], options['-l'], options['-p'], options['-x'])
 
 	# Call the above function with the user inputs
 	evolutionary_driver(params)
